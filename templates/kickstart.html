@@ -1,0 +1,72 @@
+Kickstart Configurator
+#platform=AMD64 or Intel EM64T
+
+#System language
+lang en_AU
+#Language modules to install
+langsupport en_AU
+#System keyboard
+keyboard us
+#System mouse
+mouse
+#System timezone
+timezone Australia/Sydney
+#Root password
+rootpw --iscrypted $1$1d20$nnB8yAPn.F.I2vqS7X2bb/ 
+#Initial user
+user --disabled
+#Reboot after installation
+reboot
+#Use text mode install
+text
+#Install OS instead of upgrade
+install
+#Use Web installation
+url --url http://mirror.aarnet.edu.au/ubuntu
+#System bootloader configuration
+bootloader --location=mbr 
+#Clear the Master Boot Record
+zerombr yes
+#Partition clearing information
+clearpart --all --initlabel 
+#System authorization infomation
+auth  --useshadow  --enablemd5 
+#Firewall configuration
+firewall --disabled 
+#Do not configure the X Window System
+skipx
+# Disk partitions
+part / --fstype=ext3 --size 1 --grow 
+preseed  partman/confirm_write_new_label boolean true
+preseed partman/choose_partition        select Finish partitioning and write changes to disk
+preseed --owner partman-basicfilesystems partman-basicfilesystems/no_swap boolean false
+
+#Network
+network --bootproto=dhcp --device=eth0 --hostname={{ name }}
+# 
+
+%pre
+ 
+#services
+services --enabled=ntpd,nscd,
+ 
+#Package install information
+%packages
+ubuntu-standard
+man-db
+wget
+postfix
+openssh-server
+sysstat
+nfs-common
+nscd
+postfix
+quota
+ntp
+python-pip
+git
+ 
+%post
+rm /etc/hostname
+wget http://172.22.0.254:5000/hostname -O /etc/hostname
+
