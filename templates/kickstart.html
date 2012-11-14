@@ -42,7 +42,7 @@ preseed partman/choose_partition        select Finish partitioning and write cha
 preseed --owner partman-basicfilesystems partman-basicfilesystems/no_swap boolean false
 
 #Network
-network --bootproto=dhcp --device=eth0 --hostname={{ name }}
+network --bootproto=dhcp --device=eth0
 # 
 
 %pre

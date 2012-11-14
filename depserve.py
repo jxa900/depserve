@@ -78,12 +78,12 @@ def kickstart():
     host = [h for h in hosts if h.ip == ip]
     if len(host) == 0:
         return render_template('terrible_plan.html')
-        
+
     create_link('ubuntu', host)    
-    return render_template('kickstart.html', name = host[0].name)
+    return render_template('kickstart.html')
 
 @app.route('/info')
-def kickstart():
+def info():
     hosts = build_host_list()
     return render_template('info.html', hosts = hosts)
 
