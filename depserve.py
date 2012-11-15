@@ -12,8 +12,10 @@
 
 import os
 from flask import Flask, render_template, request, jsonify
+from werkzeug.contrib.fixers import ProxyFix
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app)
 
 class Host():
     def __init__(self, name, mac, ip):
