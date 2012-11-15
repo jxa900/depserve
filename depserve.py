@@ -17,6 +17,12 @@ from werkzeug.contrib.fixers import ProxyFix
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
 
+dhcp_path = '/etc/dhcp3/dhcpd.conf'
+pxe_path = '/var/lib/tftpboot/pxelinux.cfg'
+
+dhcp_path = './testing/dhcpd.conf'
+dhcp_path = './testing/pxe'
+
 class Host():
     def __init__(self, name, mac, ip):
         self.name = name
@@ -30,7 +36,7 @@ class Host():
 def build_host_list():
     hosts = list()
 
-    dhcpconf = open('/etc/dhcp3/dhcpd.conf', 'r')
+    dhcpconf = open(dhcp_path, 'r')
 
     # testing paren blocks
     th = list()
@@ -57,21 +63,21 @@ def build_host_list():
     for i in range(len(names)):
         hosts.append(Host(names[i], macs[i], ips[i]))
 
-    ls = os.listdir('/var/lib/tftpboot/pxelinux.cfg')
+    ls = os.listdir(pxe_path)
     for host in hosts:
         for link in ls:
             if '01-' + host.mac.replace(':', '-').lower() == link:
-                with open('/var/lib/tftpboot/pxelinux.cfg/01-' + host.mac.replace(':', '-').lower(), 'r') as linkedfile:
+                with open(pxe_path + '/01-' + host.mac.replace(':', '-').lower(), 'r') as linkedfile:
                     host.install = linkedfile.readlines()[0][:-2]
     return hosts
 
 def create_link(bootfile, hosts):
     for host in hosts:
          try: 
-             os.remove('/var/lib/tftpboot/pxelinux.cfg/01-' + host.mac.replace(':', '-').lower())
+             os.remove(pxe_path + '/01-' + host.mac.replace(':', '-').lower())
          except:
              pass
-         os.symlink(bootfile, '/var/lib/tftpboot/pxelinux.cfg/01-' + host.mac.replace(':', '-').lower())
+         os.symlink(bootfile, pxe_path + '/01-' + host.mac.replace(':', '-').lower())
 
 @app.route('/kickstart')
 def kickstart():
@@ -105,10 +111,8 @@ def hostname():
 def installer():
     hosts = build_host_list()
     #create_link('ubuntu', hosts)
-    ceph = [host for host in hosts if 'ceph' in host.name]
-    # last two are being used by Openstack prod.
+    # last two are being used by Openstack Essex prod.
     ch4 =  [host for host in hosts if ('stack-04' in host.name and '0415' not in host.name and '0416' not in host.name)]
-    create_link('install', ceph)
     create_link('install', ch4)
     return render_template('terrible_plan.html')
 
