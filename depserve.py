@@ -1,15 +1,9 @@
-# build something to align:
+"""
+Depserve
+--------
 
-# DHCP entries for management network (VLAN 22)
-# /var/lib/tftboot/pxelinux.cfg symlinks so that
-# we can reliably change things from deploy to not
-
-# one dandy technique is to put the kickstart behind
-# a flask server, then change the symlink on
-# http GET. This means it will only deploy once.
-
-# (a pain to test though)
-
+A deployment server written using the flask framework. Kickstarts are sent out only to ip adresses present in the dhcpd.conf file. Symlinks to change PXE boot behavior between booting from local disk and installing from ubuntu mirror are maintained. Each time a host pulls down a kickstart, the symlink is changed to localboot.
+"""
 import os
 from flask import Flask, render_template, request, jsonify
 from werkzeug.contrib.fixers import ProxyFix
@@ -21,9 +15,10 @@ dhcp_path = '/etc/dhcp3/dhcpd.conf'
 pxe_path = '/var/lib/tftpboot/pxelinux.cfg'
 
 dhcp_path = './testing/dhcpd.conf'
-dhcp_path = './testing/pxe'
+pxe_path = './testing/pxe'
 
 class Host():
+    """ A single server (VM or otherwise) with an entry in the dhcpd.conf file. """
     def __init__(self, name, mac, ip):
         self.name = name
         self.mac = mac
@@ -32,7 +27,10 @@ class Host():
 
     def __repr__(self):
         return "Host " + self.name + " mac: " + self.mac + " ip: " + self.ip
-        
+
+""" Parses the dhcpd.conf file and returns a list of hosts, which
+contains the server name, mac, ip and whether it's going to install 
+on boot """
 def build_host_list():
     hosts = list()
 
@@ -71,6 +69,7 @@ def build_host_list():
                     host.install = linkedfile.readlines()[0][:-2]
     return hosts
 
+""" Removes existing symlink and replaces it with the specified one """
 def create_link(bootfile, hosts):
     for host in hosts:
          try: 
@@ -79,6 +78,8 @@ def create_link(bootfile, hosts):
              pass
          os.symlink(bootfile, pxe_path + '/01-' + host.mac.replace(':', '-').lower())
 
+""" Route for machines to hit when they require a kickstart. This is specified in the install
+file under pxelinux.cfg. Returns a kickstart file  """
 @app.route('/kickstart')
 def kickstart():
     ip = request.remote_addr
@@ -90,23 +91,13 @@ def kickstart():
     create_link('ubuntu', host)    
     return render_template('kickstart.html')
 
+""" Route for status queries. TODO Return JSON """
 @app.route('/info')
 def info():
     hosts = build_host_list()
     return render_template('info.html', hosts = hosts)
 
-@app.route('/hostname')
-def hostname():
-    ip = request.remote_addr
-    hosts = build_host_list()
-    host = [h for h in hosts if h.ip == ip]
-    if len(host) == 0:
-        return render_template('terrible_plan.html')
-    return render_template('hostname', name = host[0].name)    
-        
-    create_link('ubuntu', host)    
-    return render_template('kickstart.html')
-
+""" Testing route that sets hosts to install """ 
 @app.route('/reset')
 def installer():
     hosts = build_host_list()
@@ -117,4 +108,4 @@ def installer():
     return render_template('terrible_plan.html')
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0',  debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
