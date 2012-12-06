@@ -14,8 +14,8 @@ app.wsgi_app = ProxyFix(app.wsgi_app)
 dhcp_path = '/etc/dhcp3/dhcpd.conf'
 pxe_path = '/var/lib/tftpboot/pxelinux.cfg'
 
-dhcp_path = './testing/dhcpd.conf'
-pxe_path = './testing/pxe'
+#dhcp_path = './testing/dhcpd.conf'
+#pxe_path = './testing/pxe'
 
 class Host():
     """ A single server (VM or otherwise) with an entry in the dhcpd.conf file. """
@@ -78,18 +78,39 @@ def create_link(bootfile, hosts):
              pass
          os.symlink(bootfile, pxe_path + '/01-' + host.mac.replace(':', '-').lower())
 
+""" Returns the hostname for the node """
+@app.route('/hostname')
+def hostname():
+    ip = request.remote_addr
+    hosts = build_host_list()
+    host = [h for h in hosts if h.ip == ip]
+
+    if len(host) != 0:
+        host = host[0]
+    else:
+        return render_template('terrible_plan.html')
+    return render_template('hostname', name=host.name)    
+
+
 """ Route for machines to hit when they require a kickstart. This is specified in the install
 file under pxelinux.cfg. Returns a kickstart file  """
 @app.route('/kickstart')
 def kickstart():
     ip = request.remote_addr
     hosts = build_host_list()
+    #print hosts
     host = [h for h in hosts if h.ip == ip]
+    print host
     if len(host) == 0:
+        print "onoes"
         return render_template('terrible_plan.html')
 
-    create_link('ubuntu', host)    
-    return render_template('kickstart.html')
+    create_link('ubuntu', host)
+
+    with open('rootpw', 'r') as pwfile:
+        pw = pwfile.readlines()[0]
+
+    return render_template('kickstart.html', pw=pw)
 
 """ Route for status queries. TODO Return JSON """
 @app.route('/info')
